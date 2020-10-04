@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-09-27 09:16:46
- * @LastEditTime: 2020-10-04 22:51:07
+ * @LastEditTime: 2020-10-04 23:22:50
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \vue-admin-template-master\src\utils\request.js
@@ -75,6 +75,7 @@ service.interceptors.response.use(
             // 这里是去请求新的token 并返回promise 然后保存新的token
             setToken(data)
             config.headers['accessToken'] = data
+            // 为请求队列的所有请求重新设置accessToken
             retryRequest.forEach(cb => {
               cb(data)
             })
@@ -91,12 +92,12 @@ service.interceptors.response.use(
             })
           })
         }
-      } else if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
-        // 50008: Illegal accessToken; 50012: Other clients logged in; 50014: Token expired;
+      } else if (res.code === 4010001) {
+        // refreshToken过期或者账户锁定
         // to re-login
-        MessageBox.confirm('You have been logged out, you can cancel to stay on this page, or log in again', 'Confirm logout', {
-          confirmButtonText: 'Re-Login',
-          cancelButtonText: 'Cancel',
+        MessageBox.confirm('您的登录凭证已失效，请重新登录', '确认重新登录', {
+          confirmButtonText: '重新登录',
+          cancelButtonText: '取消',
           type: 'warning'
         }).then(() => {
           store.dispatch('user/resetToken').then(() => {

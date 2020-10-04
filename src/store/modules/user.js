@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-09-27 09:16:46
- * @LastEditTime: 2020-10-04 22:29:02
+ * @LastEditTime: 2020-10-05 00:45:43
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \vue-admin-template-master\src\store\modules\user.js
@@ -67,6 +67,7 @@ const actions = {
     return new Promise((resolve, reject) => {
       reGetToken({ 'refreshToken': refreshToken }).then(response => {
         const { data } = response
+        commit('SET_TOKEN', data)
         resolve(data)
       }).catch(error => {
         reject(error)
@@ -76,7 +77,7 @@ const actions = {
   // get user info
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
-      getInfo(state.access_token).then(response => {
+      getInfo().then(response => {
         const { data } = response
 
         if (!data) {
