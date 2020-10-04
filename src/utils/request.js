@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-09-27 09:16:46
- * @LastEditTime: 2020-10-01 23:50:46
+ * @LastEditTime: 2020-10-04 22:51:07
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \vue-admin-template-master\src\utils\request.js
@@ -9,9 +9,7 @@
 import axios from 'axios'
 import { MessageBox, Message } from 'element-ui'
 import store from '@/store'
-import { getToken, getRefreshToken } from '@/utils/auth'
-import { reGetToken } from '@/api/user'
-import { setToken } from '@/utils/auth'
+import { getToken, getRefreshToken, setToken } from '@/utils/auth'
 
 // create an axios instance
 const service = axios.create({
@@ -20,21 +18,9 @@ const service = axios.create({
   timeout: 5000 // request timeout
 })
 
-// 是否有请求正在刷新accessToken
-window.isRefreshing = false
+let retryRequest = [] // 存放token 过期的请求
 
-// 被挂起的请求数组
-let refreshSubscribers = []
-
-// push所有请求到数组中
-function subscribeTokenRefresh(cb) {
-  refreshSubscribers.push(cb)
-}
-
-// 刷新请求（refreshSubscribers数组中的请求得到新的accessToken之后会自执行，用新的token去请求数据）
-function onRrefreshed(token) {
-  refreshSubscribers.map(cb => cb(token))
-}
+let isRefresh = false // 是否在请求新的token
 // request interceptor
 service.interceptors.request.use(
   config => {
@@ -78,13 +64,35 @@ service.interceptors.response.use(
     const config = response.config
     // if the custom code is not 20000, it is judged as an error.
     if (res.code !== 200) {
-      Message({
-        message: res.msg || '操作失败',
-        type: 'error',
-        duration: 5 * 1000
-      })
-      // 50008: Illegal accessToken; 50012: Other clients logged in; 50014: Token expired;
-      if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
+      // 如果当前请求的accessToken过期，后端返回过期的状态码
+      if (res.code === 4010002) {
+        // 判断是否正在刷新
+        if (!isRefresh) {
+          // 将刷新accessToken的标志置为true
+          isRefresh = true
+          // 发起刷新accessToken的请求
+          return store.dispatch('user/reGetToken', store.getters.refreshToken).then(data => {
+            // 这里是去请求新的token 并返回promise 然后保存新的token
+            setToken(data)
+            config.headers['accessToken'] = data
+            retryRequest.forEach(cb => {
+              cb(data)
+            })
+            isRefresh = false
+            retryRequest = []
+            return axios(config)
+          })
+        } else {
+          return new Promise((resolve) => {
+            // 将resolve放进队列，用一个函数形式来保存，等token刷新后直接执行
+            retryRequest.push((token) => {
+              config.headers['accessToken'] = token
+              resolve(axios(config))
+            })
+          })
+        }
+      } else if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
+        // 50008: Illegal accessToken; 50012: Other clients logged in; 50014: Token expired;
         // to re-login
         MessageBox.confirm('You have been logged out, you can cancel to stay on this page, or log in again', 'Confirm logout', {
           confirmButtonText: 'Re-Login',
@@ -95,40 +103,12 @@ service.interceptors.response.use(
             location.reload()
           })
         })
-      }
-      // 如果当前请求的accessToken过期，后端返回过期的状态码
-      if (res.code === 4010002) {
-        // 判断是否正在刷新
-        if (!window.isRefreshing) {
-          // 将刷新accessToken的标志置为true
-          window.isRefreshing = true
-          // 发起刷新accessToken的请求
-          reGetToken({ refreshToken: getRefreshToken() }).then(responseData => {
-            // 将标志置为false
-            window.isRefreshing = false
-            // 成功刷新accessToken
-            config.headers['accessToken'] = responseData.data
-            // 更新accessToken
-            setToken(responseData.data)
-            // 执行数组里的函数,重新发起被挂起的请求
-            onRrefreshed(responseData.data)
-            // 执行onRefreshed函数后清空数组中保存的请求
-            refreshSubscribers = []
-          }).catch(err => {
-            alert(err.response.data.message)
-            window.location.href = '#/login'
-          })
-        }
-        // 把请求(token)=>{....}都push到一个数组中
-        const retry = new Promise((resolve, reject) => {
-          // (token) => {...}这个函数就是回调函数
-          subscribeTokenRefresh((token) => {
-            config.headers['accessToken'] = token
-            // 将请求挂起
-            resolve(config)
-          })
+      } else {
+        Message({
+          message: res.msg || '操作失败',
+          type: 'error',
+          duration: 5 * 1000
         })
-        return retry
       }
       return Promise.reject(new Error(res.msg || 'Error'))
     } else {

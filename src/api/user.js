@@ -1,7 +1,7 @@
 /*
  * @Author: your name
  * @Date: 2020-09-27 09:16:46
- * @LastEditTime: 2020-10-02 10:03:36
+ * @LastEditTime: 2020-10-04 20:39:56
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \vue-admin-template-master\src\api\user.js
@@ -50,6 +50,14 @@ export function updatePwd(data) {
   return request({
     url: '/api/user/pwd',
     method: 'put',
+    data
+  })
+}
+
+export function testuser(data) {
+  return request({
+    url: '/api/user/test',
+    method: 'post',
     data
   })
 }

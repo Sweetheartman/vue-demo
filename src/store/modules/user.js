@@ -1,12 +1,12 @@
 /*
  * @Author: your name
  * @Date: 2020-09-27 09:16:46
- * @LastEditTime: 2020-10-01 18:26:55
+ * @LastEditTime: 2020-10-04 22:29:02
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: \vue-admin-template-master\src\store\modules\user.js
  */
-import { login, logout, getInfo } from '@/api/user'
+import { login, logout, getInfo, reGetToken } from '@/api/user'
 import { getToken, setToken, removeToken, getRefreshToken, setRefreshToken, removeRefreshToken } from '@/utils/auth'
 import { resetRouter } from '@/router'
 
@@ -63,7 +63,16 @@ const actions = {
       })
     })
   },
-
+  reGetToken({ commit }, refreshToken) {
+    return new Promise((resolve, reject) => {
+      reGetToken({ 'refreshToken': refreshToken }).then(response => {
+        const { data } = response
+        resolve(data)
+      }).catch(error => {
+        reject(error)
+      })
+    })
+  },
   // get user info
   getInfo({ commit, state }) {
     return new Promise((resolve, reject) => {
