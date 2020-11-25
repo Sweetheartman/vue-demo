@@ -6,7 +6,7 @@ function resolve(dir) {
   return path.join(__dirname, dir)
 }
 
-const name = defaultSettings.title || 'Vue+SpringBoot Demo' // page title
+const name = defaultSettings.title || '悦能区块链' // page title
 
 // If your port is set to 80,
 // use administrator privileges to execute the command line.

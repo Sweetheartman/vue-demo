@@ -16,7 +16,7 @@
               首页
             </el-dropdown-item>
           </router-link>
-          <a target="_blank" href="http://blog.spirit-guy.com/">
+          <a target="_blank" href="http://www.spirit-guy.com/">
             <el-dropdown-item>我的博客</el-dropdown-item>
           </a>
           <el-dropdown-item divided @click.native="dialogFormVisible = true">
